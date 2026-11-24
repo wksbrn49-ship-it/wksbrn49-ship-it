@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  phone     String?
+  createdAt DateTime  @default(now())
+  bookings  Booking[]
+}
+
+model Booking {
+  id           Int             @id @default(autoincrement())
+  bookingCode  String          @unique
+  customerId   Int
+  type         BookingType
+  status       BookingStatus   @default(PENDING)
+  totalAmount  Float
+  currency     String          @default("KES")
+  paymentMethod String?        
+  paymentStatus PaymentStatus  @default(PENDING)
+  depositAmount Float          @default(0)
+  amountDue    Float          @default(0)
+  createdAt    DateTime        @default(now())
+  customer     Customer        @relation(fields: [customerId], references: [id])
+  carHire      CarHireBooking?
+  flight       FlightBooking?
+  hotel        HotelBooking?
+  passengers   Passenger[]
+  safari       SafariBooking?
+}
+
+model SafariBooking {
+  id          Int      @id @default(autoincrement())
+  bookingId   Int      @unique
+  safariName  String
+  destination String
+  startDate   DateTime
+  endDate     DateTime
+  adults      Int      @default(1)
+  children    Int      @default(0)
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+}
+
+model FlightBooking {
+  id            Int       @id @default(autoincrement())
+  bookingId     Int       @unique
+  airline       String
+  departure     String
+  arrival       String
+  departureDate DateTime
+  returnDate    DateTime?
+  tripType      String
+  booking       Booking   @relation(fields: [bookingId], references: [id])
+}
+
+model HotelBooking {
+  id        Int      @id @default(autoincrement())
+  bookingId Int      @unique
+  hotelName String
+  location  String
+  checkIn   DateTime
+  checkOut  DateTime
+  rooms     Int      @default(1)
+  guests    Int      @default(1)
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+}
+
+model CarHireBooking {
+  id              Int      @id @default(autoincrement())
+  bookingId       Int      @unique
+  vehicleName     String
+  pickupLocation  String
+  dropoffLocation String
+  pickupDate      DateTime
+  dropoffDate     DateTime?
+  passengers      Int      @default(1)
+  serviceType     String   @default("DAILY_HIRE")
+  driverOption    String   @default("SELF_DRIVE")
+  distanceKm      Float?
+  durationMinutes Int?
+  specialRequests String?
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+}
+
+model Passenger {
+  id        Int     @id @default(autoincrement())
+  bookingId Int
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  age       Int?
+  booking   Booking @relation(fields: [bookingId], references: [id])
+}
+
+enum BookingType {
+  SAFARI
+  FLIGHT
+  HOTEL
+  CAR_HIRE
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
