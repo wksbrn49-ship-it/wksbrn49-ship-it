@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import prisma from "@/app/lib/prisma";
+import {
+  deliverStripePaymentNotifications,
+  recordStripePaymentSuccess,
+} from "@/app/lib/payment-notifications";
 
 function getStripeClient() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -18,44 +21,48 @@ export async function POST(request: Request) {
   const stripe = getStripeClient();
 
   if (!secret || !stripe) {
-    return NextResponse.json({ received: true });
+    return NextResponse.json(
+      { error: "Stripe webhook is not configured." },
+      { status: 503 }
+    );
   }
 
   const body = await request.text();
+  let event: Stripe.Event;
 
   try {
-    const event = stripe.webhooks.constructEvent(
+    event = stripe.webhooks.constructEvent(
       body,
       signature || "",
       secret
     );
-
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const bookingCode = session.metadata?.bookingCode;
-
-      if (bookingCode) {
-        await prisma.booking.updateMany({
-          where: { bookingCode },
-          data: {
-            paymentStatus: "PAID",
-            amountDue: 0,
-            status: "CONFIRMED",
-          },
-        });
-      }
-    }
-
-    return NextResponse.json({ received: true });
   } catch (error) {
-    console.error("Stripe webhook error:", error);
+    console.error("Stripe webhook signature verification failed:", error);
     return NextResponse.json(
       { error: "Webhook verification failed." },
       { status: 400 }
     );
   }
-}
 
-function stripeSecretKeyAvailable() {
-  return Boolean(process.env.STRIPE_SECRET_KEY);
+  try {
+    if (
+      event.type === "checkout.session.completed" ||
+      event.type === "checkout.session.async_payment_succeeded"
+    ) {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      if (session.payment_status === "paid" && session.metadata?.bookingCode) {
+        await recordStripePaymentSuccess(session);
+        await deliverStripePaymentNotifications(session);
+      }
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error("Stripe webhook processing failed:", error);
+    return NextResponse.json(
+      { error: "Unable to process Stripe event." },
+      { status: 500 }
+    );
+  }
 }

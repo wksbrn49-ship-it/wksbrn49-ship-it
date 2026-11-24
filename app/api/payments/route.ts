@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         customer_email: String(email),
-        success_url: `${appUrl}/payment/success?booking=${encodeURIComponent(String(bookingCode))}`,
+        success_url: `${appUrl}/payment/success?booking=${encodeURIComponent(String(bookingCode))}&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${appUrl}/payment/cancelled?booking=${encodeURIComponent(String(bookingCode))}`,
         metadata: {
           bookingCode: String(bookingCode),

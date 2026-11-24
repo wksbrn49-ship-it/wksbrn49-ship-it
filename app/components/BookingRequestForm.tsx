@@ -231,16 +231,9 @@ export default function BookingRequestForm({
         return;
       }
 
-      const completionResult = await fetch("/api/payments/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingCode }),
-      }).then((res) => res.json().catch(() => null));
-
       setPaymentMessage(
-        completionResult?.message ??
-          result?.message ??
-          "Demo payment created successfully. Your booking is now awaiting payment confirmation."
+        result?.message ??
+          "No live payment provider is configured. Your booking is awaiting payment confirmation."
       );
     } catch {
       setPaymentMessage("Unable to start payment. Please try again.");

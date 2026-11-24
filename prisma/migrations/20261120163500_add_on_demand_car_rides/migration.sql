@@ -1,0 +1,1 @@
+-- No schema changes are required; the previous migration added the on-demand ride fields.

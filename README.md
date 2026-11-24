@@ -28,6 +28,14 @@ To enable automatic road-distance and duration estimates, configure a server-sid
 
 Apply the database migration with `npx prisma migrate deploy` before accepting on-demand ride requests.
 
+## Payment confirmations
+
+After a Stripe payment is verified, the app sends a confirmation email through Resend and an SMS through Africa's Talking. Delivery attempts are stored so Stripe webhook retries do not resend notifications that have already succeeded. If a booking has no phone number, the SMS is skipped.
+
+Configure `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (a verified Resend sender), `AFRICASTALKING_USERNAME`, and `AFRICASTALKING_API_KEY`. `AFRICASTALKING_SENDER_ID` is optional. Configure `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` for the `/api/webhooks/stripe` endpoint and enable the `checkout.session.completed` and `checkout.session.async_payment_succeeded` events. Add these values in Vercel's environment settings for production; do not commit secrets.
+
+Apply database migrations with `npx prisma migrate deploy` before enabling notifications. M-Pesa/Daraja payment callbacks are not currently integrated, so these automatic notifications apply to verified Stripe payments.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -17,24 +17,57 @@ model Customer {
 }
 
 model Booking {
-  id           Int             @id @default(autoincrement())
-  bookingCode  String          @unique
-  customerId   Int
-  type         BookingType
-  status       BookingStatus   @default(PENDING)
-  totalAmount  Float
-  currency     String          @default("KES")
-  paymentMethod String?        
-  paymentStatus PaymentStatus  @default(PENDING)
-  depositAmount Float          @default(0)
-  amountDue    Float          @default(0)
-  createdAt    DateTime        @default(now())
-  customer     Customer        @relation(fields: [customerId], references: [id])
-  carHire      CarHireBooking?
-  flight       FlightBooking?
-  hotel        HotelBooking?
-  passengers   Passenger[]
-  safari       SafariBooking?
+  id                   Int                   @id @default(autoincrement())
+  bookingCode          String                @unique
+  customerId           Int
+  type                 BookingType
+  status               BookingStatus         @default(PENDING)
+  totalAmount          Float
+  currency             String                @default("KES")
+  paymentMethod        String?
+  paymentStatus        PaymentStatus         @default(PENDING)
+  depositAmount        Float                 @default(0)
+  amountDue            Float                 @default(0)
+  createdAt            DateTime              @default(now())
+  customer             Customer              @relation(fields: [customerId], references: [id])
+  carHire              CarHireBooking?
+  flight               FlightBooking?
+  hotel                HotelBooking?
+  passengers           Passenger[]
+  payments             Payment[]
+  paymentNotifications PaymentNotification[]
+  safari               SafariBooking?
+}
+
+model Payment {
+  id                 Int                @id @default(autoincrement())
+  bookingId          Int
+  amount             Decimal            @db.Decimal(10, 2)
+  phoneNumber        String
+  checkoutRequestId  String?            @unique
+  mpesaReceiptNumber String?            @unique
+  status             MpesaPaymentStatus @default(PENDING)
+  createdAt          DateTime           @default(now())
+  booking            Booking            @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+}
+
+model PaymentNotification {
+  id              Int                        @id @default(autoincrement())
+  bookingId       Int
+  stripeSessionId String
+  channel         PaymentNotificationChannel
+  status          PaymentNotificationStatus  @default(PENDING)
+  attempts        Int                        @default(0)
+  lastError       String?
+  sentAt          DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  booking         Booking                    @relation(fields: [bookingId], references: [id])
+
+  @@unique([stripeSessionId, channel])
+  @@index([bookingId])
 }
 
 model SafariBooking {
@@ -120,6 +153,24 @@ enum PaymentStatus {
   PARTIAL
   PAID
   CANCELLED
+}
+
+enum MpesaPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum PaymentNotificationChannel {
+  EMAIL
+  SMS
+}
+
+enum PaymentNotificationStatus {
+  PENDING
+  SENDING
+  SENT
+  SKIPPED
 }
 
 model Admin {
